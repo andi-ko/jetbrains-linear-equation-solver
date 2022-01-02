@@ -13,14 +13,34 @@ def parse_infile(infile):
 
 def parse_matrix(matrix):
 
+    # remove all zero rows
+    for idx, equation in enumerate(matrix):
+        if all(x == 0 for x in equation):
+            matrix.pop(idx)
+
     for idx, equation in enumerate(matrix):
         # get nonzero element at current column index
         shift = 1
+
         while equation[idx] == 0:
+            if idx + shift >= len(matrix):
+                break
             temp = matrix[idx]
             matrix[idx] = matrix[idx + shift]
             matrix[idx + shift] = temp
             shift += 1
+            equation = matrix[idx]
+
+        # check for contradiction
+        if all(x == 0 for x in equation[:-1]):
+            if equation[-1] != 0:
+                return None
+
+        # check if matrix is ambiguous
+        if all(x == 0 for x in equation):
+            return []
+        if equation[idx] == 0:
+            return []
 
         # divide by current coefficient
         matrix[idx] = list(map(lambda _x: _x / equation[idx], equation))
@@ -51,6 +71,11 @@ def write_outfile(outfile, coefficients):
         f.writelines(list(map(lambda _x: str(_x) + '\n', coefficients)))
 
 
+def write_error(outfile, message):
+    with open(outfile, "w") as f:
+        f.writelines(message)
+
+
 def main(argv):
     infile = ''
     outfile = ''
@@ -68,8 +93,15 @@ def main(argv):
         elif opt in ("-o", "--outfile"):
             outfile = arg
     matrix = parse_infile(infile)
+    write_outfile("matrix.txt", matrix)
     coefficients = parse_matrix(matrix)
-    write_outfile(outfile, coefficients)
+    if not coefficients:
+        if isinstance(coefficients, list):
+            write_error(outfile, "Infinitely many solutions")
+        else:
+            write_error(outfile, "No solutions")
+    else:
+        write_outfile(outfile, coefficients)
 
 
 if __name__ == "__main__":
